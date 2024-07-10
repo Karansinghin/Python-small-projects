@@ -1,0 +1,111 @@
+import pyautogui
+import cv2
+import numpy as np
+import datetime
+import threading
+
+class ScreenRecorder:
+    def __init__(self):
+        self.recording = False
+        self.paused = False
+        self.out = None
+        self.thread = None
+
+    def start_recording(self):
+        if not self.recording:
+            self.recording = True
+            self.paused = False
+            self.thread = threading.Thread(target=self.record)
+            self.thread.start()
+            print("Recording started...")
+        else:
+            print("Recording is already in progress.")
+
+    def stop_recording(self):
+        if self.recording:
+            self.recording = False
+            self.thread.join()
+            self.out.release()
+            cv2.destroyAllWindows()
+            print("Recording stopped.")
+        else:
+            print("No recording in progress to stop.")
+
+    def pause_recording(self):
+        if self.recording and not self.paused:
+            self.paused = True
+            print("Recording paused.")
+        elif self.paused:
+            print("Recording is already paused.")
+        else:
+            print("No recording in progress to pause.")
+
+    def resume_recording(self):
+        if self.recording and self.paused:
+            self.paused = False
+            print("Recording resumed.")
+        elif not self.paused:
+            print("Recording is not paused.")
+        else:
+            print("No recording in progress to resume.")
+
+    def record(self):
+        filename = f"screen_recording_{datetime.datetime.now().strftime('%Y-%m-%d_%H-%M-%S')}.avi"
+        
+        screen_size = pyautogui.size()
+        
+        fourcc = cv2.VideoWriter_fourcc(*"XVID")
+        fps = 20.0
+        self.out = cv2.VideoWriter(filename, fourcc, fps, (screen_size.width, screen_size.height))
+        
+        while self.recording:
+            if not self.paused:
+                img = pyautogui.screenshot()
+                
+                frame = np.array(img)
+                
+                frame = cv2.cvtColor(frame, cv2.COLOR_RGB2BGR)
+                
+                self.out.write(frame)
+        
+                cv2.imshow("Screen Recorder", frame)
+                
+                if cv2.waitKey(1) & 0xFF == ord('q'):
+                    self.stop_recording()
+                    break
+            else:
+                cv2.waitKey(1)
+
+        if not self.recording:
+            self.out.release()
+            cv2.destroyAllWindows()
+
+def menu():
+    recorder = ScreenRecorder()
+    while True:
+        print("\nMenu:")
+        print("1. Start Recording")
+        print("2. Pause Recording")
+        print("3. Resume Recording")
+        print("4. Stop Recording")
+        print("5. Exit")
+        choice = input("Enter your choice: ")
+
+        if choice == '1':
+            recorder.start_recording()
+        elif choice == '2':
+            recorder.pause_recording()
+        elif choice == '3':
+            recorder.resume_recording()
+        elif choice == '4':
+            recorder.stop_recording()
+        elif choice == '5':
+            if recorder.recording:
+                recorder.stop_recording()
+            print("Exiting...")
+            break
+        else:
+            print("Invalid choice. Please try again.")
+
+if __name__ == "__main__":
+    menu()
